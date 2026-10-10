@@ -125,13 +125,16 @@ jobs:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.11.4"
+          terraform_version: "1.16.3"
 
       - name: Download saved plan and deployment files
         uses: actions/download-artifact@v4
         with:
           name: terraform-deployment-${{ github.run_id }}
-          path: terraform
+          path: .
+
+      - name: Verify downloaded plan
+        run: ls -l infrastructure/tfplan
 
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6.3.0
