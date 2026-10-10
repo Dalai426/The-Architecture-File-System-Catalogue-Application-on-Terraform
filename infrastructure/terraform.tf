@@ -7,5 +7,11 @@ terraform {
       version = ">= 5.79.0"
     }
   }
+  backend "s3" {
+    bucket       = "stateterraform526"
+    key          = "group-01/terraform.tfstate"
+    region       = "us-east-2"
+    use_lockfile = true
+  }
   required_version = ">= 1.0.0"
 }
