@@ -11,8 +11,8 @@ output "lambda_function_arns" {
   description = "ARNs of the deployed Lambda functions"
 
   value = {
-    for name, function in aws_lambda_function.app :
-    name => function.arn
+    for arn, function in aws_lambda_function.app :
+    arn => function.arn
   }
 }
 

@@ -5,7 +5,7 @@ locals {
     "${var.project_name}-${data.aws_caller_identity.current.account_id}-${var.region}-s3"
   )
   log_group_name = lower(
-    "${var.project_name}-${data.aws_caller_identity.current.account_id}-${var.region}-monitoring-log-group"
+    "/aws/lambda/${var.project_name}-handle-s3-events"
   )
 }
 
@@ -43,13 +43,16 @@ module "functions" {
 module "broker" {
   source = "./broker"
   // variables
-  bucket_arn = module.storage.bucket_arn
-  topic_name = "${var.project_name}-s3-event-notification-topic"
+  bucket_arn          = module.storage.bucket_arn
+  bucket_id           = module.storage.bucket_id
+  topic_name          = "${var.project_name}-s3-event-notification-topic"
+  lambda_function_arn = module.functions.lambda_function_arns["${var.project_name}-handle-s3-events"]
 }
 
 module "monitoring" {
-  source         = "./monitoring"
-  log_group_name = local.log_group_name
+  source                    = "./monitoring"
+  log_group_name            = local.log_group_name
+  budget_notification_email = "gadalai426@gmail.com"
   function_names = [
     "${var.project_name}-handle-s3-events"
   ]

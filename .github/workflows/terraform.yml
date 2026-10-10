@@ -1,0 +1,148 @@
+name: Terraform CI and Deployment
+
+on:
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Choose deployment operation"
+        type: choice
+        options:
+          - deploy
+          - destroy
+        default: deploy
+        required: true
+
+      destroy_ack:
+        description: "For destroy, enter DELETE-TEST-DATA"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  # Reject manual runs from branches other than main.
+  branch-check:
+    name: Check deployment branch
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Manual deployment must run from main."
+            exit 1
+          fi
+
+  # Generate and save a plan using the existing S3 backend.
+  plan:
+    name: Generate saved plan
+    if: github.event_name == 'workflow_dispatch'
+    needs: branch-check
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Require destroy acknowledgement
+        if: inputs.operation == 'destroy'
+        env:
+          DESTROY_ACK: ${{ inputs.destroy_ack }}
+        run: |
+          if [ "$DESTROY_ACK" != "DELETE-TEST-DATA" ]; then
+            echo "Destroy requires the exact acknowledgement DELETE-TEST-DATA."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.TEACHER_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Initialize S3 backend
+        working-directory: infrastructure
+        run: terraform init -input=false -lockfile=readonly
+
+      - name: Generate deployment plan
+        if: inputs.operation == 'deploy'
+        working-directory: infrastructure
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Generate destroy plan
+        if: inputs.operation == 'destroy'
+        working-directory: infrastructure
+        run: terraform plan -input=false -destroy -out=tfplan
+
+      - name: Create readable plan for review
+        working-directory: infrastructure
+        run: terraform show -no-color tfplan > tfplan.txt
+
+      - name: Upload plan and deployment files
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-deployment-${{ github.run_id }}
+          path: |
+            infrastructure/tfplan
+            infrastructure/tfplan.txt
+            infrastructure/.terraform.lock.hcl
+            backend/**
+          if-no-files-found: error
+          retention-days: 3
+
+  # This job waits for the teacher's environment approval.
+  apply:
+    name: Apply approved saved plan
+    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    runs-on: ubuntu-latest
+
+    environment:
+      name: lab-apply
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Download saved plan and deployment files
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-deployment-${{ github.run_id }}
+          path: terraform
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.TEACHER_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Initialize S3 backend
+        working-directory: infrastructure
+        run: terraform init -input=false -lockfile=readonly
+
+      - name: Apply the saved plan
+        working-directory: infrastructure
+        run: terraform apply -input=false tfplan

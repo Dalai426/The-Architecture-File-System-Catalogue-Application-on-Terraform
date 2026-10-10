@@ -6,3 +6,7 @@ variable "log_group_name" {
 variable "function_names" {
   type = list(string)
 }
+
+variable "budget_notification_email" {
+  type = string
+}

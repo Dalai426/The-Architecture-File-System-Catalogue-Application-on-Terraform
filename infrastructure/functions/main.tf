@@ -17,6 +17,8 @@ resource "aws_lambda_function" "app" {
   filename         = data.archive_file.lambda_zip[each.key].output_path
   source_code_hash = data.archive_file.lambda_zip[each.key].output_base64sha256
 
+  memory_size = 128
+  timeout     = 10
   logging_config {
     log_format = "Text"
     log_group  = each.value.log_group_name

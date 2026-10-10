@@ -5,7 +5,7 @@ variable "region" {
 }
 
 variable "project_name" {
-  description = "File management system"
+  description = "File catalog system"
   type        = string
-  default     = "file-management-system"
+  default     = "file-catalog-system"
 }
