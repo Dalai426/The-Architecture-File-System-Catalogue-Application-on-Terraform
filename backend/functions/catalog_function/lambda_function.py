@@ -23,6 +23,7 @@ def lambda_handler(event, context):
         # SNS wraps the S3 event in a JSON string.
         if record.get("EventSource") != "aws:sns":
             continue
+        print(json.dumps(record, indent=2))
 
         sns_message = record["Sns"]["Message"]
         s3_event = json.loads(sns_message)
