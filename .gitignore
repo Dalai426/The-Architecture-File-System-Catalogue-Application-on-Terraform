@@ -15,8 +15,6 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Temporarily ignore lock file to bypass the current push error
-.terraform.lock.hcl
 
 # Sensitive/private credential files
 *.pem
