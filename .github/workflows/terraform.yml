@@ -71,8 +71,8 @@ jobs:
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
-          role-to-assume: ${{ vars.TEACHER_OIDC_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.TEACHER_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Initialize S3 backend
         working-directory: infrastructure
@@ -136,8 +136,8 @@ jobs:
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
-          role-to-assume: ${{ vars.TEACHER_OIDC_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.TEACHER_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Initialize S3 backend
         working-directory: infrastructure
